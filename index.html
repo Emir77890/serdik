@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Heart Landing for You</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #060606;
+            position: relative;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: block;
+        }
+
+        /* Мобильный контейнер для интерфейса */
+        .ui-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            padding: 40px 20px;
+        }
+
+        /* Стартовый экран */
+        .start-screen {
+            position: absolute;
+            inset: 0;
+            background: #060606;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: all;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s ease;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .start-screen.hide {
+            opacity: 0;
+            transform: scale(0.92);
+            pointer-events: none;
+        }
+
+        .protocol {
+            color: #ff2d75;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 6px #ff0055;
+            font-family: monospace;
+        }
+
+        .main-title {
+            color: white;
+            font-size: 45px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            line-height: 1.1;
+        }
+
+        .main-title span {
+            color: #78ff78;
+            text-shadow: 0 0 15px rgba(120, 255, 120, 0.5);
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 35px;
+            font-family: monospace;
+        }
+
+        .decrypt-btn {
+            padding: 16px 36px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #ff004c, #ff3b85);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            transition: transform 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        .decrypt-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Центральный текст поверх уменьшенного сердца */
+        .center-text {
+            color: white;
+            font-size: 46px;
+            font-weight: 800;
+            text-shadow: 0 0 15px #ff0055, 0 0 35px #ff0055;
+            opacity: 0;
+            transform: scale(0.75);
+            transition: all 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        .center-text.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Кастомная надпись снизу */
+        .bottom-tagline {
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6), 0 0 20px #ff0055;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1s ease-out 0.5s; /* Появляется чуть позже сердца */
+            width: 100%;
+            margin-top: auto;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        .bottom-tagline.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="start-screen" id="startScreen">
+        <div class="protocol">[SYSTEM] INITIATING_v2.MOBILE...</div>
+        <div class="main-title">Love <span>you.</span></div>
+        <div class="subtitle">> Mobile package encrypted.</div>
+        <button class="decrypt-btn" id="mainBtn">🔒 DECRYPT MESSAGE</button>
+    </div>
+
+    <div class="ui-layer">
+        <div></div> <div class="center-text" id="centerText">Love you.</div>
+        <div class="bottom-tagline" id="bottomText">T+K равно любовь</div>
+    </div>
+
+    <canvas id="heartCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('heartCanvas');
+const ctx = canvas.getContext('2d');
+let w, h;
+let words = [];
+let animationStarted = false;
+
+function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    if (animationStarted) {
+        initHeartWords();
+    }
+}
+window.addEventListener('resize', resize);
+resize();
+
+function triggerOpen() {
+    const startScreen = document.getElementById('startScreen');
+    if (startScreen.classList.contains('hide')) return;
+
+    startScreen.classList.add('hide');
+    
+    setTimeout(() => {
+        document.getElementById('centerText').classList.add('show');
+        document.getElementById('bottomText').classList.add('show');
+        initHeartWords();
+        animationStarted = true;
+        animate();
+    }, 300);
+}
+
+document.getElementById('mainBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    triggerOpen();
+});
+document.getElementById('startScreen').addEventListener('click', triggerOpen);
+
+class HeartWord {
+    constructor(targetX, targetY) {
+        this.targetX = targetX;
+        this.targetY = targetY;
+        
+        // Разлет из центра
+        this.x = w / 2 + (Math.random() - 0.5) * 40;
+        this.y = h / 2 - (h * 0.08) + (Math.random() - 0.5) * 40; 
+        
+        this.speed = 0.05 + Math.random() * 0.04;
+        this.alpha = 0;
+        this.maxAlpha = 0.3 + Math.random() * 0.7;
+        this.flashSpeed = 0.012 + Math.random() * 0.02;
+    }
+
+    update() {
+        this.x += (this.targetX - this.x) * this.speed;
+        this.y += (this.targetY - this.y) * this.speed;
+
+        if (this.alpha < this.maxAlpha) this.alpha += 0.03;
+        this.maxAlpha += this.flashSpeed;
+        if (this.maxAlpha > 1 || this.maxAlpha < 0.2) {
+            this.flashSpeed = -this.flashSpeed;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
+        ctx.fillStyle = '#ff2d75';
+        ctx.font = '600 8.5px Poppins, sans-serif'; // Оптимальный размер букв, чтобы форма читалась идеально
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#ff004c';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('i love you', this.x, this.y);
+        ctx.restore();
+    }
+}
+
+function initHeartWords() {
+    words = [];
+    const minSide = Math.min(w, h);
+    
+    // Модифицированные шаги сетки — сердце стало компактнее (примерно на 25% меньше предыдущего)
+    // чтобы идеально смотреться в верхней половине экрана телефона
+    const stepX = minSide * 0.041; 
+    const stepY = minSide * 0.028; 
+
+    for (let x = -20; x <= 20; x += 1.3) {
+        for (let y = -20; y <= 20; y += 1.3) {
+            
+            let nx = x * 0.075;
+            let ny = y * 0.075;
+
+            let formula = Math.pow(nx*nx + ny*ny - 1, 3) - nx*nx*ny*ny*ny;
+
+            if (formula <= 0) {
+                // Смещаем координационный центр сердца немного выше центра экрана смартфона (h / 2 - смещение)
+                let targetX = w / 2 + (x * stepX);
+                let targetY = h / 2 - (y * stepY) - (h * 0.08); 
+
+                targetX += (Math.random() - 0.5) * 5;
+                targetY += (Math.random() - 0.5) * 5;
+
+                words.push(new HeartWord(targetX, targetY));
+            }
+        }
+    }
+}
+
+function animate() {
+    ctx.fillStyle = 'rgba(6, 6, 6, 0.28)';
+    ctx.fillRect(0, 0, w, h);
+
+    words.forEach(word => {
+        word.update();
+        word.draw();
+    });
+
+    requestAnimationFrame(animate);
+}
+</script>
+</body>
+</html>
